@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "651996033680",
+    "firebase_url": "https://bodyw-de88f.firebaseio.com",
+    "project_id": "bodyw-de88f",
+    "storage_bucket": "bodyw-de88f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:651996033680:android:d3029fe83bb827ed",
+        "android_client_info": {
+          "package_name": "com.mccc.bodyw"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "651996033680-f54mflg1uuve071hpr4av1o1nncgqdcm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqXfdtOkYLDHOJEvyj3UFtLWkUzNPaoq0"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
