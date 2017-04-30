@@ -52,20 +52,20 @@ public class AttributeContentProvider extends ContentProvider {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    public Map<Integer, Integer> getWeight() {
+    public static Map<Integer, Integer> getWeight() {
         Map<Integer, Integer> map = new ArrayMap<>();
 
-        for (int i = 20170401; i < 20171430; i++) {
+        for (int i = 20170401; i < 20170430; i++) {
             map.put(i, (int) (60 + Math.random() * 10));
         }
 
         return map;
     }
 
-    public Map<Integer, Integer> getBodyFat() {
+    public static Map<Integer, Integer> getBodyFat() {
         Map<Integer, Integer> map = new ArrayMap<>();
 
-        for (int i = 20170401; i < 20171430; i++) {
+        for (int i = 20170401; i < 20170430; i++) {
             map.put(i, (int) (20 + Math.random() * 10));
         }
 

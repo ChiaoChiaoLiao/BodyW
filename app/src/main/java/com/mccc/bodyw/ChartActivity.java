@@ -1,10 +1,10 @@
 package com.mccc.bodyw;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.View;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -12,6 +12,22 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class ChartActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -34,11 +50,26 @@ public class ChartActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
+        drawer.addDrawerListener(toggle);
         toggle.syncState();
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        LineChart lineChart = (LineChart) findViewById(R.id.record_chart);
+        ILineDataSet bodyWeightData = setBodyWeightData();
+        ILineDataSet bodyFatData = setBodyFatData();
+        LineData recordData = new LineData();
+        recordData.addDataSet(bodyWeightData);
+        recordData.addDataSet(bodyFatData);
+        drawRecordChart(lineChart);
+        lineChart.setData(recordData);
+        lineChart.invalidate();
     }
 
     @Override
@@ -96,5 +127,85 @@ public class ChartActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private ILineDataSet setBodyWeightData() {
+        List<Entry> entries = new ArrayList<>();
+        Map<Integer, Integer> weightMap = AttributeContentProvider.getWeight();
+
+        for (int index = 0; index < weightMap.size(); index++)
+            entries.add(new Entry(index, (int) (Math.random() * 10) + 60));
+
+        LineDataSet set = new LineDataSet(entries, "Body Weight");
+        set.setColor(Color.RED);
+        set.setLineWidth(1f);
+        set.setCircleColor(Color.RED);
+        set.setCircleRadius(3f);
+        set.setFillColor(Color.WHITE);
+        set.setMode(LineDataSet.Mode.LINEAR);
+        set.setDrawValues(true);
+        set.setValueTextSize(9f);
+        set.setValueTextColor(Color.RED);
+
+        set.setAxisDependency(YAxis.AxisDependency.LEFT);
+
+        return set;
+    }
+
+    private ILineDataSet setBodyFatData() {
+        List<Entry> entries = new ArrayList<>();
+        Map<Integer, Integer> bodyFatMap = AttributeContentProvider.getBodyFat();
+
+        for (int index = 0; index < bodyFatMap.size(); index++)
+            entries.add(new Entry(index, (int) (Math.random() * 10) + 20));
+
+        LineDataSet set = new LineDataSet(entries, "Body Fat");
+        set.setColor(Color.GREEN);
+        set.setLineWidth(1f);
+        set.setCircleColor(Color.GREEN);
+        set.setCircleRadius(3f);
+        set.setFillColor(Color.WHITE);
+        set.setMode(LineDataSet.Mode.LINEAR);
+        set.setDrawValues(true);
+        set.setValueTextSize(9f);
+        set.setValueTextColor(Color.GREEN);
+
+        set.setAxisDependency(YAxis.AxisDependency.RIGHT);
+
+        return set;
+    }
+
+    private void drawRecordChart(LineChart chart) {
+        chart.getDescription().setEnabled(false);
+        chart.setBackgroundColor(Color.WHITE);
+        chart.setDrawGridBackground(false);
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(false);
+        chart.setScaleMinima(30/7, 1);
+
+        Legend l = chart.getLegend();
+        l.setWordWrapEnabled(true);
+        l.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
+        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
+        l.setOrientation(Legend.LegendOrientation.HORIZONTAL);
+        l.setDrawInside(false);
+
+        YAxis rightAxis = chart.getAxisRight();
+        rightAxis.setDrawGridLines(false);
+
+        YAxis leftAxis = chart.getAxisLeft();
+        leftAxis.setDrawGridLines(false);
+
+        XAxis xAxis = chart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTH_SIDED);
+        xAxis.setAxisMinimum(0f);
+        xAxis.setGranularity(1f);
+        xAxis.setValueFormatter(new IAxisValueFormatter() {
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+                return String.valueOf((int) value);
+            }
+        });
+        chart.moveViewToX(30);
     }
 }
