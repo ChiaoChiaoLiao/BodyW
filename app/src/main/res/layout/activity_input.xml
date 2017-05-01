@@ -39,7 +39,8 @@
         android:id="@+id/input_weight"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="number" />
+        android:inputType="number"
+        android:maxLines="1" />
 
     <TextView
         android:layout_width="match_parent"
@@ -50,5 +51,25 @@
         android:id="@+id/input_body_fat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="number" />
+        android:inputType="number"
+        android:maxLines="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onCancel"
+            android:text="@android:string/cancel" />
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onOk"
+            android:text="@android:string/ok" />
+    </LinearLayout>
 </LinearLayout>

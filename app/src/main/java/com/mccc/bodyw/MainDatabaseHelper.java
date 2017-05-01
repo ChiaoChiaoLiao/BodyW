@@ -25,7 +25,7 @@ public class MainDatabaseHelper extends SQLiteOpenHelper {
                 TABLE +
                 " ( " +
                 COL_DATE + " INTEGER PRIMARY KEY, " +
-                COL_WEIGHT + " INTEGER" +
+                COL_WEIGHT + " INTEGER, " +
                 COL_BODY_FAT + " INTEGER " +
                 " )");
     }
