@@ -4,7 +4,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -67,7 +66,7 @@ public class ChartActivity extends AppCompatActivity
         LineData recordData = new LineData();
         recordData.addDataSet(bodyWeightData);
         recordData.addDataSet(bodyFatData);
-        drawRecordChart(lineChart);
+        drawRecordChart(lineChart, 30);
         lineChart.setData(recordData);
         lineChart.invalidate();
     }
@@ -136,20 +135,20 @@ public class ChartActivity extends AppCompatActivity
         for (int index = 0; index < weightMap.size(); index++)
             entries.add(new Entry(index, (int) (Math.random() * 10) + 60));
 
-        LineDataSet set = new LineDataSet(entries, "Body Weight");
-        set.setColor(Color.RED);
-        set.setLineWidth(1f);
-        set.setCircleColor(Color.RED);
-        set.setCircleRadius(3f);
-        set.setFillColor(Color.WHITE);
-        set.setMode(LineDataSet.Mode.LINEAR);
-        set.setDrawValues(true);
-        set.setValueTextSize(9f);
-        set.setValueTextColor(Color.RED);
+        LineDataSet dataSet = new LineDataSet(entries, "Body Weight");
+        dataSet.setColor(Color.RED);
+        dataSet.setLineWidth(3f);
+        dataSet.setCircleColor(Color.RED);
+        dataSet.setCircleRadius(5f);
+        dataSet.setCircleColorHole(Color.RED);
+        dataSet.setMode(LineDataSet.Mode.LINEAR);
+        dataSet.setDrawValues(false);
+        dataSet.setDrawVerticalHighlightIndicator(false);
+        dataSet.setHighLightColor(Color.LTGRAY);
 
-        set.setAxisDependency(YAxis.AxisDependency.LEFT);
+        dataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
 
-        return set;
+        return dataSet;
     }
 
     private ILineDataSet setBodyFatData() {
@@ -159,45 +158,51 @@ public class ChartActivity extends AppCompatActivity
         for (int index = 0; index < bodyFatMap.size(); index++)
             entries.add(new Entry(index, (int) (Math.random() * 10) + 20));
 
-        LineDataSet set = new LineDataSet(entries, "Body Fat");
-        set.setColor(Color.GREEN);
-        set.setLineWidth(1f);
-        set.setCircleColor(Color.GREEN);
-        set.setCircleRadius(3f);
-        set.setFillColor(Color.WHITE);
-        set.setMode(LineDataSet.Mode.LINEAR);
-        set.setDrawValues(true);
-        set.setValueTextSize(9f);
-        set.setValueTextColor(Color.GREEN);
+        LineDataSet dataSet = new LineDataSet(entries, "Body Fat");
+        dataSet.setColor(Color.GREEN);
+        dataSet.setLineWidth(3f);
+        dataSet.setCircleColor(Color.GREEN);
+        dataSet.setCircleRadius(5f);
+        dataSet.setCircleColorHole(Color.GREEN);
+        dataSet.setMode(LineDataSet.Mode.LINEAR);
+        dataSet.setDrawValues(false);
+        dataSet.setDrawVerticalHighlightIndicator(false);
+        dataSet.setHighLightColor(Color.LTGRAY);
 
-        set.setAxisDependency(YAxis.AxisDependency.RIGHT);
+        dataSet.setAxisDependency(YAxis.AxisDependency.RIGHT);
 
-        return set;
+        return dataSet;
     }
 
-    private void drawRecordChart(LineChart chart) {
+    private void drawRecordChart(LineChart chart, int size) {
         chart.getDescription().setEnabled(false);
-        chart.setBackgroundColor(Color.WHITE);
+        chart.setBackgroundColor(Color.TRANSPARENT);
         chart.setDrawGridBackground(false);
         chart.setDragEnabled(true);
         chart.setScaleEnabled(false);
-        chart.setScaleMinima(30/7, 1);
+        chart.setDrawBorders(true);
+        chart.setScaleMinima(size/7.25f, 1);
 
-        Legend l = chart.getLegend();
-        l.setWordWrapEnabled(true);
-        l.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
-        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
-        l.setOrientation(Legend.LegendOrientation.HORIZONTAL);
-        l.setDrawInside(false);
+        Legend legend = chart.getLegend();
+        legend.setWordWrapEnabled(true);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
+        legend.setOrientation(Legend.LegendOrientation.HORIZONTAL);
+        legend.setDrawInside(false);
 
         YAxis rightAxis = chart.getAxisRight();
         rightAxis.setDrawGridLines(false);
+        rightAxis.setMinWidth(30);
+        rightAxis.setMaxWidth(30);
 
         YAxis leftAxis = chart.getAxisLeft();
         leftAxis.setDrawGridLines(false);
+        leftAxis.setMinWidth(30);
+        leftAxis.setMaxWidth(30);
 
         XAxis xAxis = chart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTH_SIDED);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setDrawGridLines(false);
         xAxis.setAxisMinimum(0f);
         xAxis.setGranularity(1f);
         xAxis.setValueFormatter(new IAxisValueFormatter() {
@@ -206,6 +211,7 @@ public class ChartActivity extends AppCompatActivity
                 return String.valueOf((int) value);
             }
         });
-        chart.moveViewToX(30);
+
+        chart.moveViewToX(size);
     }
 }
