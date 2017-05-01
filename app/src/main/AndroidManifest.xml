@@ -21,19 +21,15 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".InputActivity">
-            <intent-filter>
-                <action android:name="com.mccc.bodyw.INPUTDATA" />
-            </intent-filter>
-        </activity>
+        <activity
+            android:name=".InputActivity"
+            android:parentActivityName=".ChartActivity" />
 
         <provider
             android:name=".AttributeContentProvider"
-            android:authorities="user_attribute"
+            android:authorities="com.example.bodyw.provider"
             android:enabled="true"
-            android:exported="true">
-
-        </provider>
+            android:exported="false" />
 
     </application>
 

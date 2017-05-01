@@ -1,5 +1,8 @@
 package com.mccc.bodyw;
 
+import android.content.ContentValues;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -9,6 +12,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.mccc.bodyw.AttributeContentProvider.CONTENT_URI;
+import static com.mccc.bodyw.MainDatabaseHelper.COL_DATE;
+
 public class ChartActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -42,7 +49,7 @@ public class ChartActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                startActivity();
+                startActivity(new Intent(getApplicationContext(), InputActivity.class));
             }
         });
 
@@ -69,6 +76,21 @@ public class ChartActivity extends AppCompatActivity
         drawRecordChart(lineChart, 30);
         lineChart.setData(recordData);
         lineChart.invalidate();
+
+
+        ContentValues values = new ContentValues();
+        for (int i = 0; i < 10; i++) {
+            values.put(COL_DATE, i);
+            getContentResolver().insert(CONTENT_URI, values);
+        }
+
+        try (Cursor cursor = getContentResolver().query(CONTENT_URI, null, null, null, null)) {
+            if (cursor != null) {
+                while (cursor.moveToNext())
+                    Log.d("mingchun", "date = " + cursor.getInt(cursor.getColumnIndex(COL_DATE)));
+            }
+        }
+
     }
 
     @Override
