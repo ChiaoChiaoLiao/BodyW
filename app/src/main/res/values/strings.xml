@@ -6,4 +6,7 @@
 
     <string name="action_settings">Settings</string>
     <string name="title_activity_chart">ChartActivity</string>
+
+    <string name="label_weight">Weight(kg)</string>
+    <string name="label_body_fat">Body Fat(%)</string>
 </resources>
