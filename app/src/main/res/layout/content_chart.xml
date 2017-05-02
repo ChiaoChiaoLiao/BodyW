@@ -6,7 +6,8 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context="com.mccc.bodyw.ChartActivity"
-    tools:showIn="@layout/app_bar_chart">
+    tools:showIn="@layout/app_bar_chart"
+    android:background="@color/colorBackground">
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -19,6 +20,7 @@
             android:layout_gravity="start"
             android:padding="5dp"
             android:textSize="10dp"
+            android:textColor="@android:color/white"
             android:text="Weight(kg)"
             tools:ignore="SpUsage" />
         <TextView
@@ -28,6 +30,7 @@
             android:layout_gravity="end"
             android:padding="5dp"
             android:textSize="10dp"
+            android:textColor="@android:color/white"
             android:text="Body Fat(%)"
             tools:ignore="SpUsage" />
         <com.github.mikephil.charting.charts.LineChart
