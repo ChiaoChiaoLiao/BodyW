@@ -4,13 +4,12 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.ArrayMap;
-
-import java.util.Map;
 
 public class AttributeContentProvider extends ContentProvider {
 
     public static final Uri CONTENT_URI = Uri.parse("content://com.example.bodyw.provider");
+    private static final String PATH_MAIN = "main";
+    public static final Uri RECORD_URI = Uri.withAppendedPath(CONTENT_URI, PATH_MAIN);
 
     MainDatabaseHelper mOpenHelper;
 
@@ -57,26 +56,6 @@ public class AttributeContentProvider extends ContentProvider {
         // TODO: Implement this to handle requests for the MIME type of the data
         // at the given URI.
         throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    public static Map<Integer, Integer> getWeight() {
-        Map<Integer, Integer> map = new ArrayMap<>();
-
-        for (int i = 20170401; i < 20170430; i++) {
-            map.put(i, (int) (60 + Math.random() * 10));
-        }
-
-        return map;
-    }
-
-    public static Map<Integer, Integer> getBodyFat() {
-        Map<Integer, Integer> map = new ArrayMap<>();
-
-        for (int i = 20170401; i < 20170430; i++) {
-            map.put(i, (int) (20 + Math.random() * 10));
-        }
-
-        return map;
     }
 
 }

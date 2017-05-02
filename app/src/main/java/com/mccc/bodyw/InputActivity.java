@@ -65,9 +65,9 @@ public class InputActivity extends AppCompatActivity {
 
     public void onOk(View view) {
         ContentValues values = new ContentValues();
-        values.put(MainDatabaseHelper.COL_DATE, Integer.parseInt(String.format("%4d%02d%02d", sYear, sMonth, sDay)));
-        values.put(MainDatabaseHelper.COL_WEIGHT, Integer.parseInt(((EditText) findViewById(R.id.input_weight)).getText().toString()));
-        values.put(MainDatabaseHelper.COL_BODY_FAT, Integer.parseInt(((EditText) findViewById(R.id.input_body_fat)).getText().toString()));
+        values.put(MainDatabaseHelper.RecordEntry.COL_DATE, Integer.parseInt(String.format("%4d%02d%02d", sYear, sMonth, sDay)));
+        values.put(MainDatabaseHelper.RecordEntry.COL_WEIGHT, Integer.parseInt(((EditText) findViewById(R.id.input_weight)).getText().toString()));
+        values.put(MainDatabaseHelper.RecordEntry.COL_BODY_FAT, Integer.parseInt(((EditText) findViewById(R.id.input_body_fat)).getText().toString()));
         getContentResolver().insert(CONTENT_URI, values);
         finish();
     }

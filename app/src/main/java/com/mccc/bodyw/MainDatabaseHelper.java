@@ -3,6 +3,7 @@ package com.mccc.bodyw;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.provider.BaseColumns;
 
 public class MainDatabaseHelper extends SQLiteOpenHelper {
 
@@ -11,9 +12,26 @@ public class MainDatabaseHelper extends SQLiteOpenHelper {
 
     public static final String TABLE = "main";
 
-    public static final String COL_DATE = "DATE";
-    public static final String COL_WEIGHT = "WEIGHT";
-    public static final String COL_BODY_FAT = "BODY_FAT";
+    public static abstract class RecordEntry implements BaseColumns {
+        public static final String TABLE_NAME = "main";
+        public static final String COL_DATE = "DATE";
+        public static final String COL_WEIGHT = "WEIGHT";
+        public static final String COL_BODY_FAT = "BODY_FAT";
+    }
+
+    public static class RecordQuery {
+        public static final int DATE = 0;
+        public static final int WEIGHT = 1;
+        public static final int BODY_FAT = 2;
+    }
+
+    public static String[] getRecordQueryProjection() {
+        return new String[]{
+                MainDatabaseHelper.RecordEntry.COL_DATE,
+                MainDatabaseHelper.RecordEntry.COL_WEIGHT,
+                MainDatabaseHelper.RecordEntry.COL_BODY_FAT
+        };
+    }
 
     MainDatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -24,9 +42,9 @@ public class MainDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE " +
                 TABLE +
                 " ( " +
-                COL_DATE + " INTEGER PRIMARY KEY, " +
-                COL_WEIGHT + " INTEGER, " +
-                COL_BODY_FAT + " INTEGER " +
+                RecordEntry.COL_DATE + " INTEGER PRIMARY KEY, " +
+                RecordEntry.COL_WEIGHT + " INTEGER, " +
+                RecordEntry.COL_BODY_FAT + " INTEGER " +
                 " )");
     }
 

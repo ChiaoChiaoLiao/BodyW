@@ -1,17 +1,21 @@
 package com.mccc.bodyw;
 
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -29,10 +33,31 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ChartActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener,
+        LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int LOADER_ID = 1;
+    private final ContentObserver mContentObserver = new ContentObserver(new Handler()) {
+        @Override
+        public void onChange(boolean selfChange) {
+            getSupportLoaderManager().restartLoader(LOADER_ID, null, ChartActivity.this);
+        }
+    };
+    private class RecordData {
+        private int date;
+        private int weight;
+        private int bodyFat;
+
+        private RecordData(int date, int weight, int bodyFat) {
+            this.date = date;
+            this.weight = weight;
+            this.bodyFat = bodyFat;
+        }
+    }
+    private LineChart mLineChart;
+    private List<RecordData> mRecordDataList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,32 +82,25 @@ public class ChartActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        mLineChart = (LineChart) findViewById(R.id.record_chart);
+
+        getSupportLoaderManager().initLoader(LOADER_ID, null, this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        LineChart lineChart = (LineChart) findViewById(R.id.record_chart);
-        ILineDataSet bodyWeightData = setBodyWeightData();
-        ILineDataSet bodyFatData = setBodyFatData();
-        LineData recordData = new LineData();
-        recordData.addDataSet(bodyWeightData);
-        recordData.addDataSet(bodyFatData);
-        drawRecordChart(lineChart, 30);
-        lineChart.setData(recordData);
-        lineChart.invalidate();
+        getContentResolver().registerContentObserver(
+                AttributeContentProvider.RECORD_URI, true, mContentObserver);
 
+    }
 
-        try (Cursor cursor = getContentResolver().query(AttributeContentProvider.CONTENT_URI, null, null, null, null)) {
-            if (cursor != null) {
-                while (cursor.moveToNext())
-                    Log.d("mingchun", "date = " + cursor.getInt(cursor.getColumnIndex(MainDatabaseHelper.COL_DATE)) +
-                            " weight = " + cursor.getInt(cursor.getColumnIndex(MainDatabaseHelper.COL_WEIGHT)) +
-                            " body fat = " + cursor.getInt(cursor.getColumnIndex(MainDatabaseHelper.COL_BODY_FAT)));
-            }
-        }
-
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        getSupportLoaderManager().restartLoader(LOADER_ID, null, ChartActivity.this);
     }
 
     @Override
@@ -142,12 +160,62 @@ public class ChartActivity extends AppCompatActivity
         return true;
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch (id) {
+            case LOADER_ID:
+                return new CursorLoader(
+                        this, // Parent activity context
+                        AttributeContentProvider.RECORD_URI, // Table to query
+                        MainDatabaseHelper.getRecordQueryProjection(), // Projection to return
+                        null, // No selection clause
+                        null, // No selection arguments
+                        MainDatabaseHelper.RecordEntry.COL_DATE  // Default sort order
+                );
+            default:
+                return null;
+        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mRecordDataList = new ArrayList<>();
+        refreshData(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+    }
+
+    private void refreshData(Cursor cursor) {
+        mRecordDataList = getCursorData(cursor);
+        ILineDataSet bodyWeightData = setBodyWeightData();
+        ILineDataSet bodyFatData = setBodyFatData();
+        LineData recordData = new LineData();
+        recordData.addDataSet(bodyWeightData);
+        recordData.addDataSet(bodyFatData);
+        drawRecordChart(mLineChart, cursor.getCount());
+        mLineChart.setData(recordData);
+        mLineChart.invalidate();
+    }
+
+    private List<RecordData> getCursorData(Cursor cursor) {
+        List<RecordData> recordDataList = new ArrayList<>();
+        while (cursor != null && cursor.moveToNext()) {
+            recordDataList.add(new RecordData(cursor.getInt(MainDatabaseHelper.RecordQuery.DATE),
+                    cursor.getInt(MainDatabaseHelper.RecordQuery.WEIGHT),
+                    cursor.getInt(MainDatabaseHelper.RecordQuery.BODY_FAT)));
+        }
+        return recordDataList;
+    }
+
     private ILineDataSet setBodyWeightData() {
         List<Entry> entries = new ArrayList<>();
-        Map<Integer, Integer> weightMap = AttributeContentProvider.getWeight();
 
-        for (int index = 0; index < weightMap.size(); index++)
-            entries.add(new Entry(index, (int) (Math.random() * 10) + 60));
+        for (int i = 0; i < mRecordDataList.size(); i++) {
+            entries.add(new Entry(i, mRecordDataList.get(i).weight));
+        }
 
         LineDataSet dataSet = new LineDataSet(entries, "Body Weight");
         dataSet.setColor(Color.RED);
@@ -167,10 +235,10 @@ public class ChartActivity extends AppCompatActivity
 
     private ILineDataSet setBodyFatData() {
         List<Entry> entries = new ArrayList<>();
-        Map<Integer, Integer> bodyFatMap = AttributeContentProvider.getBodyFat();
 
-        for (int index = 0; index < bodyFatMap.size(); index++)
-            entries.add(new Entry(index, (int) (Math.random() * 10) + 20));
+        for (int i = 0; i < mRecordDataList.size(); i++) {
+            entries.add(new Entry(i, mRecordDataList.get(i).bodyFat));
+        }
 
         LineDataSet dataSet = new LineDataSet(entries, "Body Fat");
         dataSet.setColor(Color.GREEN);
@@ -195,7 +263,9 @@ public class ChartActivity extends AppCompatActivity
         chart.setDragEnabled(true);
         chart.setScaleEnabled(false);
         chart.setDrawBorders(true);
-        chart.setScaleMinima(size/7.25f, 1);
+        if (size > 7) {
+            chart.setScaleMinima(size / 7.25f, 1);
+        }
 
         Legend legend = chart.getLegend();
         legend.setWordWrapEnabled(true);
