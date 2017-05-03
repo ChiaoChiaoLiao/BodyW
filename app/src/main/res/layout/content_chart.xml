@@ -18,8 +18,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
-            android:padding="5dp"
-            android:textSize="10dp"
+            android:padding="8dp"
+            android:textSize="12dp"
             android:textColor="@android:color/white"
             tools:ignore="SpUsage" />
         <TextView
@@ -27,8 +27,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:padding="5dp"
-            android:textSize="10dp"
+            android:padding="8dp"
+            android:textSize="12dp"
             android:textColor="@android:color/white"
             tools:ignore="SpUsage" />
         <com.github.mikephil.charting.charts.LineChart
