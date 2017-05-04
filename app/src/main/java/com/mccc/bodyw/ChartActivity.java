@@ -105,6 +105,13 @@ public class ChartActivity extends AppCompatActivity
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getSupportLoaderManager().destroyLoader(LOADER_ID);
+        getContentResolver().unregisterContentObserver(mContentObserver);
+    }
+
+    @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -210,9 +217,6 @@ public class ChartActivity extends AppCompatActivity
         List<Integer> indexDataList = new ArrayList<>();
         int index = 0;
         int count = 0;
-        if (cursor != null) {
-            cursor.moveToFirst();
-        }
         while (cursor != null && cursor.moveToNext()) {
             int tempIndex;
             if (count > 0) {
