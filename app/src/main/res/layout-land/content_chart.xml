@@ -9,34 +9,110 @@
     tools:showIn="@layout/app_bar_chart"
     android:background="@color/colorBackground">
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/left_axis"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:padding="8dp"
-            android:textSize="12dp"
-            android:textColor="@android:color/white"
-            tools:ignore="SpUsage" />
-        <TextView
-            android:id="@+id/right_axis"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:padding="8dp"
-            android:textSize="12dp"
-            android:textColor="@android:color/white"
-            tools:ignore="SpUsage" />
-        <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/record_chart"
-            android:layout_width="match_parent"
-            android:layout_height="280dp">
-        </com.github.mikephil.charting.charts.LineChart>
+        <FrameLayout
+            android:layout_width="420dp"
+            android:layout_height="match_parent">
 
-    </FrameLayout>
+            <TextView
+                android:id="@+id/left_axis"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:padding="8dp"
+                android:textSize="12dp"
+                android:textColor="@android:color/white"
+                tools:ignore="SpUsage" />
+            <TextView
+                android:id="@+id/right_axis"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:padding="8dp"
+                android:textSize="12dp"
+                android:textColor="@android:color/white"
+                tools:ignore="SpUsage" />
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/record_chart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            </com.github.mikephil.charting.charts.LineChart>
+
+        </FrameLayout>
+        <LinearLayout
+            android:id="@+id/info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingTop="@dimen/info_padding">
+
+            <TextView
+                android:id="@+id/info_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/info_title"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"/>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/info_left_axis_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/info_title"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"/>
+                <TextView
+                    android:id="@+id/info_left_axis_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/info_value"
+                    android:textColor="@android:color/white"/>
+
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/info_right_axis_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/info_title"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"/>
+                <TextView
+                    android:id="@+id/info_right_axis_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/info_value"
+                    android:textColor="@android:color/white"/>
+
+            </LinearLayout>
+            <TextView
+                android:id="@+id/info_note_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/info_title"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:text="@string/title_note"/>
+            <TextView
+                android:id="@+id/info_note_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/info_value"
+                android:textColor="@android:color/white"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

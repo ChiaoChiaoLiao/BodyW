@@ -30,9 +30,13 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ChartActivity extends AppCompatActivity
@@ -40,6 +44,8 @@ public class ChartActivity extends AppCompatActivity
         LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final int LOADER_ID = 1;
+    private static final String CHART_VIEW_X = "view_x";
+    private static final String CHART_HIGHLIGHT = "highlight";
     private final ContentObserver mContentObserver = new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfChange) {
@@ -59,6 +65,45 @@ public class ChartActivity extends AppCompatActivity
             this.bodyFat = bodyFat;
         }
     }
+    private class ChartValueSelectedListener implements OnChartValueSelectedListener {
+
+        List<Integer> dataIndexList;
+        TextView date = (TextView) findViewById(R.id.info_date);
+        TextView leftValue = (TextView) findViewById(R.id.info_left_axis_value);
+        TextView rightValue = (TextView) findViewById(R.id.info_right_axis_value);
+
+        private ChartValueSelectedListener (List<Integer> dataIndexList) {
+            this.dataIndexList = dataIndexList;
+        }
+
+        @Override
+        public void onValueSelected(Entry e, Highlight h) {
+            if (mRecordDataList == null) {
+                return;
+            }
+
+            int index = (int) e.getX();
+            if (dataIndexList != null && dataIndexList.contains(index)) {
+                RecordData recordData = mRecordDataList.get(dataIndexList.indexOf(index));
+                date.setText(String.valueOf(recordData.date));
+                leftValue.setText(getString(R.string.value_weight_kg, valueFormat(recordData.weight)));
+                rightValue.setText(getString(R.string.value_body_fat, valueFormat(recordData.bodyFat)));
+            }
+        }
+
+        @Override
+        public void onNothingSelected() {
+            if (mRecordDataList == null) {
+                return;
+            }
+            RecordData recordData = mRecordDataList.get(mRecordDataList.size() - 1);
+            date.setText(
+                    String.valueOf(recordData.date) + " " + getString(R.string.value_last_record));
+            leftValue.setText(getString(R.string.value_weight_kg, valueFormat(recordData.weight)));
+            rightValue.setText(getString(R.string.value_body_fat, valueFormat(recordData.bodyFat)));
+        }
+    }
+    private Bundle mSavedInstance;
     private LineChart mLineChart;
     private List<RecordData> mRecordDataList;
 
@@ -66,6 +111,7 @@ public class ChartActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chart);
+        mSavedInstance = savedInstanceState;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -196,21 +242,64 @@ public class ChartActivity extends AppCompatActivity
 
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putFloat(CHART_VIEW_X, mLineChart.getLowestVisibleX());
+        outState.putString(CHART_HIGHLIGHT, Arrays.toString(mLineChart.getHighlighted()));
+
+        super.onSaveInstanceState(outState);
+    }
+
     private void refreshData(Cursor cursor) {
         List<Integer> dataIndexList = getCursorData(cursor);
         mLineChart.setNoDataText("");
         if (mRecordDataList.size() == 0) {
             return;
         }
+
         ILineDataSet bodyWeightData = setBodyWeightData();
         ILineDataSet bodyFatData = setBodyFatData();
         LineData recordData = new LineData();
         recordData.addDataSet(bodyWeightData);
         recordData.addDataSet(bodyFatData);
+        float leftMax = bodyWeightData.getYMax();
+        float leftMin = bodyWeightData.getYMin();
+        float rightMax = bodyFatData.getYMax();
+        float rightMin = bodyFatData.getYMin();
         drawRecordChart(mLineChart, dataIndexList,
-                mRecordDataList.get(mRecordDataList.size()-1).index + 1);
+                mRecordDataList.get(mRecordDataList.size()-1).index + 1,
+                leftMax, leftMin, rightMax, rightMin);
         mLineChart.setData(recordData);
         mLineChart.invalidate();
+        mLineChart.setOnChartValueSelectedListener(new ChartValueSelectedListener(dataIndexList));
+
+        TextView date = (TextView) findViewById(R.id.info_date);
+        TextView leftValue = (TextView) findViewById(R.id.info_left_axis_value);
+        TextView rightValue = (TextView) findViewById(R.id.info_right_axis_value);
+        mLineChart.moveViewToX(mRecordDataList.get(mRecordDataList.size()-1).index + 1);
+        if (mSavedInstance != null) {
+            mLineChart.moveViewToX(mSavedInstance.getFloat(CHART_VIEW_X));
+            String highlightString = mSavedInstance.getString(CHART_HIGHLIGHT);
+            Highlight highlight = parseHighlight(highlightString);
+            mLineChart.highlightValue(highlight);
+            if (highlight != null) {
+                int index = (int) highlight.getX();
+                if (dataIndexList != null && dataIndexList.contains(index)) {
+                    RecordData highlightData = mRecordDataList.get(dataIndexList.indexOf(index));
+                    date.setText(String.valueOf(highlightData.date));
+                    leftValue.setText(
+                            getString(R.string.value_weight_kg, valueFormat(highlightData.weight)));
+                    rightValue.setText(
+                            getString(R.string.value_body_fat, valueFormat(highlightData.bodyFat)));
+                }
+                return;
+            }
+        }
+        RecordData lastData = mRecordDataList.get(mRecordDataList.size() - 1);
+        date.setText(
+                String.valueOf(lastData.date) + " " + getString(R.string.value_last_record));
+        leftValue.setText(getString(R.string.value_weight_kg, valueFormat(lastData.weight)));
+        rightValue.setText(getString(R.string.value_body_fat, valueFormat(lastData.bodyFat)));
     }
 
     private List<Integer> getCursorData(Cursor cursor) {
@@ -307,6 +396,7 @@ public class ChartActivity extends AppCompatActivity
     private static final float CHART_AXIS_LABEL_WIDTH = 40;
     private static final int CHART_BORDER_COLOR = Color.LTGRAY;
     private static final float CHART_ROTATION_ANGLE = -40;
+    private static final float CHART_AXIS_OFFSET = 5;
 
     private ILineDataSet setBodyWeightData() {
         List<Entry> entries = new ArrayList<>();
@@ -331,6 +421,8 @@ public class ChartActivity extends AppCompatActivity
         dataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
         TextView leftAxis = (TextView) findViewById(R.id.left_axis);
         leftAxis.setText(getString(R.string.label_weight));
+        TextView leftTitle = (TextView) findViewById(R.id.info_left_axis_title);
+        leftTitle.setText(getString(R.string.title_weight).concat(" = "));
 
         return dataSet;
     }
@@ -358,11 +450,14 @@ public class ChartActivity extends AppCompatActivity
         dataSet.setAxisDependency(YAxis.AxisDependency.RIGHT);
         TextView rightAxis = (TextView) findViewById(R.id.right_axis);
         rightAxis.setText(getString(R.string.label_body_fat));
+        TextView rightTitle = (TextView) findViewById(R.id.info_right_axis_title);
+        rightTitle.setText(getString(R.string.title_body_fat).concat(" = "));
 
         return dataSet;
     }
 
-    private void drawRecordChart(LineChart chart, final List<Integer> datIndexList, final int size) {
+    private void drawRecordChart(LineChart chart, final List<Integer> dataIndexList, final int size,
+                                 float leftMax, float leftMin, float rightMax, float rightMin) {
         chart.getDescription().setEnabled(false);
         chart.setBackgroundColor(Color.TRANSPARENT);
         chart.setDrawGridBackground(false);
@@ -390,6 +485,8 @@ public class ChartActivity extends AppCompatActivity
         rightAxis.setTextColor(CHART_BORDER_COLOR);
         rightAxis.setAxisLineWidth(1);
         rightAxis.setAxisLineColor(DATA_SET_RIGHT_AXIS_COLOR);
+        rightAxis.setAxisMaximum(rightMax + CHART_AXIS_OFFSET);
+        rightAxis.setAxisMinimum(rightMin - CHART_AXIS_OFFSET);
 
         YAxis leftAxis = chart.getAxisLeft();
         leftAxis.setDrawGridLines(false);
@@ -398,6 +495,8 @@ public class ChartActivity extends AppCompatActivity
         leftAxis.setTextColor(CHART_BORDER_COLOR);
         leftAxis.setAxisLineWidth(1);
         leftAxis.setAxisLineColor(DATA_SET_LEFT_AXIS_COLOR);
+        leftAxis.setAxisMaximum(leftMax + CHART_AXIS_OFFSET);
+        leftAxis.setAxisMinimum(leftMin - CHART_AXIS_OFFSET);
 
         XAxis xAxis = chart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -410,15 +509,29 @@ public class ChartActivity extends AppCompatActivity
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 int index = (int) value;
-                if (index < 0 || index > size - 1 || !datIndexList.contains(index)) {
+                if (index < 0 || index > size - 1 || !dataIndexList.contains(index)) {
                     return "";
                 }
-                return String.valueOf(mRecordDataList.get(datIndexList.indexOf(index)).date)
+                return String.valueOf(mRecordDataList.get(dataIndexList.indexOf(index)).date)
                         .substring(4);
             }
         });
+    }
 
-        chart.moveViewToX(size);
+    private String valueFormat(float value) {
+        return new DecimalFormat("###.##").format(value);
+    }
+
+    private Highlight parseHighlight(String string) {
+        Highlight highlight = null;
+        String[] array = string.split(",");
+        if (array.length == 5) {
+            float x = Float.valueOf(array[1].split(": ")[1]);
+            float y = Float.valueOf(array[2].split(": ")[1]);
+            int index = Integer.valueOf(array[3].split(": ")[1]);
+            highlight = new Highlight(x, y, index);
+        }
+        return highlight;
     }
 
 }

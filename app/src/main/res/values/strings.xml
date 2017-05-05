@@ -9,4 +9,10 @@
 
     <string name="label_weight">Weight(kg)</string>
     <string name="label_body_fat">Body Fat(%)</string>
+    <string name="title_weight">Weight</string>
+    <string name="title_body_fat">Body Fat</string>
+    <string name="title_note">Note</string>
+    <string name="value_weight_kg">%s kg</string>
+    <string name="value_body_fat">%s %%</string>
+    <string name="value_last_record">(the last)</string>
 </resources>
