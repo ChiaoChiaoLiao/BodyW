@@ -405,7 +405,10 @@ public class ChartActivity extends AppCompatActivity
             if (mRecordDataList.get(i).weight == 0) {
                 continue;
             }
-            entries.add(new Entry(mRecordDataList.get(i).index, mRecordDataList.get(i).weight));
+            entries.add(new Entry(
+                    mRecordDataList.get(i).index,
+                    mRecordDataList.get(i).weight,
+                    DATA_SET_LEFT_AXIS_COLOR));
         }
 
         LineDataSet dataSet = new LineDataSet(entries, "Body Weight");
@@ -417,6 +420,7 @@ public class ChartActivity extends AppCompatActivity
         dataSet.setMode(LineDataSet.Mode.LINEAR);
         dataSet.setDrawValues(false);
         dataSet.setHighLightColor(DATA_SET_LEFT_AXIS_COLOR);
+        dataSet.setDrawVerticalHighlightIndicator(false);
 
         dataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
         TextView leftAxis = (TextView) findViewById(R.id.left_axis);
@@ -434,7 +438,10 @@ public class ChartActivity extends AppCompatActivity
             if (mRecordDataList.get(i).bodyFat == 0) {
                 continue;
             }
-            entries.add(new Entry(mRecordDataList.get(i).index, mRecordDataList.get(i).bodyFat));
+            entries.add(new Entry(
+                    mRecordDataList.get(i).index,
+                    mRecordDataList.get(i).bodyFat,
+                    DATA_SET_RIGHT_AXIS_COLOR));
         }
 
         LineDataSet dataSet = new LineDataSet(entries, "Body Fat");
@@ -446,6 +453,7 @@ public class ChartActivity extends AppCompatActivity
         dataSet.setMode(LineDataSet.Mode.LINEAR);
         dataSet.setDrawValues(false);
         dataSet.setHighLightColor(DATA_SET_RIGHT_AXIS_COLOR);
+        dataSet.setDrawVerticalHighlightIndicator(false);
 
         dataSet.setAxisDependency(YAxis.AxisDependency.RIGHT);
         TextView rightAxis = (TextView) findViewById(R.id.right_axis);
@@ -516,6 +524,10 @@ public class ChartActivity extends AppCompatActivity
                         .substring(4);
             }
         });
+
+        XYMarkerView markerView = new XYMarkerView(this);
+        markerView.setChartView(chart); // For bounds control
+        chart.setMarker(markerView);
     }
 
     private String valueFormat(float value) {
