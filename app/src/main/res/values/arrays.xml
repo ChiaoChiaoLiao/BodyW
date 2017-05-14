@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="axis_choices">
+        <item>@string/title_weight</item>
+        <item>@string/title_body_fat</item>
+    </string-array>
+</resources>

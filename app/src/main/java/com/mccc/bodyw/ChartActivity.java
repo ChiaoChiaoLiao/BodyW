@@ -1,6 +1,8 @@
 package com.mccc.bodyw;
 
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -14,8 +16,10 @@ import android.support.v4.content.Loader;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -37,11 +41,13 @@ import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ChartActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        LoaderManager.LoaderCallbacks<Cursor> {
+        LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final int LOADER_ID = 1;
     private static final String CHART_VIEW_X = "view_x";
@@ -52,6 +58,7 @@ public class ChartActivity extends AppCompatActivity
             getSupportLoaderManager().restartLoader(LOADER_ID, null, ChartActivity.this);
         }
     };
+
     private class RecordData {
         private int index;
         private int date;
@@ -106,6 +113,7 @@ public class ChartActivity extends AppCompatActivity
     private Bundle mSavedInstance;
     private LineChart mLineChart;
     private List<RecordData> mRecordDataList;
+    private Set<String> mAxisTitle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +136,57 @@ public class ChartActivity extends AppCompatActivity
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+
+        mAxisTitle = SharedPreferenceUtils.getSelectedAxisChoices(ChartActivity.this);
+        if (mAxisTitle == null) {
+            mAxisTitle = new HashSet<>();
+            mAxisTitle.add(getString(R.string.title_weight));
+            mAxisTitle.add(getString(R.string.title_body_fat));
+        }
+
+        View selector = findViewById(R.id.axis_selector);
+        selector.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String[] choices = getResources().getStringArray(R.array.axis_choices);
+                final List<String> choiceArray = arrayToList(choices);
+                boolean[] isSelected = new boolean[choices.length];
+                Arrays.fill(isSelected, false);
+                final List<Integer> selectedItems = new ArrayList();
+                for (String selected : mAxisTitle) {
+                    int index = choiceArray.indexOf(selected);
+                    if (choiceArray.contains(selected)) {
+                        isSelected[index] = true;
+                        selectedItems.add(index);
+                    }
+                }
+                new AlertDialog.Builder(ChartActivity.this)
+                        .setMultiChoiceItems(choices, isSelected, new DialogInterface.OnMultiChoiceClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                                if (isChecked && !selectedItems.contains(which)) {
+                                    selectedItems.add(which);
+                                } else if (selectedItems.contains(which)){
+                                    selectedItems.remove(Integer.valueOf(which));
+                                }
+                            }
+                        })
+                        .setNegativeButton(getString(R.string.dialog_cancel), null)
+                        .setPositiveButton(getString(R.string.dialog_ok), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                Set<String> selected = new HashSet<>();
+                                for (int i : selectedItems) {
+                                    selected.add(choiceArray.get(i));
+                                }
+                                Log.w("sharedPre onClick", selected.toString());
+                                SharedPreferenceUtils.setSelectedAxisChoices(ChartActivity.this, selected);
+                            }
+                        })
+                        .create()
+                        .show();
+            }
+        });
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -248,6 +307,14 @@ public class ChartActivity extends AppCompatActivity
         outState.putString(CHART_HIGHLIGHT, Arrays.toString(mLineChart.getHighlighted()));
 
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.w("sharedPre key", key);
+        // TODO: change mAxisTitle
+        if (SharedPreferenceUtils.KEY_AXIS_CHOICES.equals(key)) {
+        }
     }
 
     private void refreshData(Cursor cursor) {
@@ -544,6 +611,14 @@ public class ChartActivity extends AppCompatActivity
             highlight = new Highlight(x, y, index);
         }
         return highlight;
+    }
+
+    private List<String> arrayToList(String[] strings) {
+        List<String> stringList = new ArrayList<>();
+        for (int i = 0; i < strings.length; i++) {
+            stringList.add(strings[i]);
+        }
+        return stringList;
     }
 
 }

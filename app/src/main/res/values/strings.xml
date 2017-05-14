@@ -15,4 +15,7 @@
     <string name="value_weight_kg">%s kg</string>
     <string name="value_body_fat">%s %%</string>
     <string name="value_last_record">(the last)</string>
+
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
 </resources>
