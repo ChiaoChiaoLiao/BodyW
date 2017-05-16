@@ -44,7 +44,7 @@
             <View
                 android:id="@+id/axis_selector"
                 android:layout_width="match_parent"
-                android:layout_height="20dp"/>
+                android:layout_height="40dp"/>
 
         </FrameLayout>
         <LinearLayout
