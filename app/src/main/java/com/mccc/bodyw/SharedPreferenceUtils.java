@@ -9,7 +9,7 @@ import java.util.Set;
  */
 
 public class SharedPreferenceUtils {
-    private static final String DATA = "bodyW";
+    public static final String DATA = "bodyW";
     public static final String KEY_AXIS_CHOICES = "axis_choices";
 
     public static void setSelectedAxisChoices (Context context, Set<String> stringSet) {

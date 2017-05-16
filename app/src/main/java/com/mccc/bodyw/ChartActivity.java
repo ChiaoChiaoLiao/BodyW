@@ -1,5 +1,6 @@
 package com.mccc.bodyw;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -19,7 +20,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -76,8 +76,6 @@ public class ChartActivity extends AppCompatActivity
 
         List<Integer> dataIndexList;
         TextView date = (TextView) findViewById(R.id.info_date);
-        TextView leftValue = (TextView) findViewById(R.id.info_left_axis_value);
-        TextView rightValue = (TextView) findViewById(R.id.info_right_axis_value);
 
         private ChartValueSelectedListener (List<Integer> dataIndexList) {
             this.dataIndexList = dataIndexList;
@@ -93,8 +91,7 @@ public class ChartActivity extends AppCompatActivity
             if (dataIndexList != null && dataIndexList.contains(index)) {
                 RecordData recordData = mRecordDataList.get(dataIndexList.indexOf(index));
                 date.setText(String.valueOf(recordData.date));
-                leftValue.setText(getString(R.string.value_weight_kg, valueFormat(recordData.weight)));
-                rightValue.setText(getString(R.string.value_body_fat, valueFormat(recordData.bodyFat)));
+                setInfoValue(recordData);
             }
         }
 
@@ -106,14 +103,14 @@ public class ChartActivity extends AppCompatActivity
             RecordData recordData = mRecordDataList.get(mRecordDataList.size() - 1);
             date.setText(
                     String.valueOf(recordData.date) + " " + getString(R.string.value_last_record));
-            leftValue.setText(getString(R.string.value_weight_kg, valueFormat(recordData.weight)));
-            rightValue.setText(getString(R.string.value_body_fat, valueFormat(recordData.bodyFat)));
+            setInfoValue(recordData);
         }
     }
     private Bundle mSavedInstance;
     private LineChart mLineChart;
     private List<RecordData> mRecordDataList;
     private Set<String> mAxisTitle;
+    private List<Integer> mDataIndexList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,7 +147,7 @@ public class ChartActivity extends AppCompatActivity
             public void onClick(View v) {
                 String[] choices = getResources().getStringArray(R.array.axis_choices);
                 final List<String> choiceArray = arrayToList(choices);
-                boolean[] isSelected = new boolean[choices.length];
+                final boolean[] isSelected = new boolean[choices.length];
                 Arrays.fill(isSelected, false);
                 final List<Integer> selectedItems = new ArrayList();
                 for (String selected : mAxisTitle) {
@@ -162,12 +159,27 @@ public class ChartActivity extends AppCompatActivity
                 }
                 new AlertDialog.Builder(ChartActivity.this)
                         .setMultiChoiceItems(choices, isSelected, new DialogInterface.OnMultiChoiceClickListener() {
+                            int count = mAxisTitle.size();
                             @Override
                             public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                                count += isChecked ? 1 : -1;
+                                isSelected[which] = isChecked;
                                 if (isChecked && !selectedItems.contains(which)) {
                                     selectedItems.add(which);
                                 } else if (selectedItems.contains(which)){
                                     selectedItems.remove(Integer.valueOf(which));
+                                }
+
+                                if (count > 2) {
+                                    isSelected[which] = false;
+                                    count--;
+                                    ((AlertDialog) dialog).getListView().setItemChecked(which, false);
+                                    selectedItems.remove(which);
+                                } else if (count == 0) {
+                                    isSelected[which] = true;
+                                    count++;
+                                    ((AlertDialog) dialog).getListView().setItemChecked(which, true);
+                                    selectedItems.add(which);
                                 }
                             }
                         })
@@ -179,7 +191,6 @@ public class ChartActivity extends AppCompatActivity
                                 for (int i : selectedItems) {
                                     selected.add(choiceArray.get(i));
                                 }
-                                Log.w("sharedPre onClick", selected.toString());
                                 SharedPreferenceUtils.setSelectedAxisChoices(ChartActivity.this, selected);
                             }
                         })
@@ -201,6 +212,16 @@ public class ChartActivity extends AppCompatActivity
         super.onResume();
         getContentResolver().registerContentObserver(
                 AttributeContentProvider.RECORD_URI, true, mContentObserver);
+        getSharedPreferences(SharedPreferenceUtils.DATA, Context.MODE_PRIVATE)
+                .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        getContentResolver().unregisterContentObserver(mContentObserver);
+        getSharedPreferences(SharedPreferenceUtils.DATA, Context.MODE_PRIVATE)
+                .unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -213,7 +234,6 @@ public class ChartActivity extends AppCompatActivity
     public void onDestroy() {
         super.onDestroy();
         getSupportLoaderManager().destroyLoader(LOADER_ID);
-        getContentResolver().unregisterContentObserver(mContentObserver);
     }
 
     @Override
@@ -293,7 +313,9 @@ public class ChartActivity extends AppCompatActivity
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mRecordDataList = new ArrayList<>();
-        refreshData(data);
+        mDataIndexList = new ArrayList<>();
+        mDataIndexList = getCursorData(data);
+        refreshData();
     }
 
     @Override
@@ -311,38 +333,72 @@ public class ChartActivity extends AppCompatActivity
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.w("sharedPre key", key);
-        // TODO: change mAxisTitle
         if (SharedPreferenceUtils.KEY_AXIS_CHOICES.equals(key)) {
+            mAxisTitle = SharedPreferenceUtils.getSelectedAxisChoices(ChartActivity.this);
+            if (mAxisTitle == null) {
+                mAxisTitle = new HashSet<>();
+                mAxisTitle.add(getString(R.string.title_weight));
+                mAxisTitle.add(getString(R.string.title_body_fat));
+            }
+            refreshData();
         }
     }
 
-    private void refreshData(Cursor cursor) {
-        List<Integer> dataIndexList = getCursorData(cursor);
+    private void refreshData() {
+        initInfo();
+
         mLineChart.setNoDataText("");
         if (mRecordDataList.size() == 0) {
             return;
         }
 
-        ILineDataSet bodyWeightData = setBodyWeightData();
-        ILineDataSet bodyFatData = setBodyFatData();
+        List<ILineDataSet> lineDataSetList = new ArrayList<>();
+        String[] axisTitle = mAxisTitle.toArray(new String[mAxisTitle.size()]);
+        for (int i = 0; i < axisTitle.length; i++) {
+            if (i > 1) {
+                break;
+            }
+            if (i == 0) {
+                if (getString(R.string.title_weight).equals(axisTitle[i])) {
+                    lineDataSetList.add(setBodyWeightData(i));
+                } else if (getString(R.string.title_body_fat).equals(axisTitle[i])) {
+                    lineDataSetList.add(setBodyFatData(i));
+                }
+            } else {
+                if (getString(R.string.title_weight).equals(axisTitle[i])) {
+                    lineDataSetList.add(setBodyWeightData(i));
+                } else if (getString(R.string.title_body_fat).equals(axisTitle[i])) {
+                    lineDataSetList.add(setBodyFatData(i));
+                }
+            }
+        }
+        if (axisTitle.length == 1) {
+            lineDataSetList.add(lineDataSetList.get(0));
+        }
+
         LineData recordData = new LineData();
-        recordData.addDataSet(bodyWeightData);
-        recordData.addDataSet(bodyFatData);
-        float leftMax = bodyWeightData.getYMax();
-        float leftMin = bodyWeightData.getYMin();
-        float rightMax = bodyFatData.getYMax();
-        float rightMin = bodyFatData.getYMin();
-        drawRecordChart(mLineChart, dataIndexList,
+        float leftMax = -1;
+        float leftMin = -1;
+        float rightMax = -1;
+        float rightMin = -1;
+        for (int i = 0; i < lineDataSetList.size(); i++) {
+            recordData.addDataSet(lineDataSetList.get(i));
+            if (i == 0) {
+                leftMax = lineDataSetList.get(i).getYMax();
+                leftMin = lineDataSetList.get(i).getYMin();
+            } else {
+                rightMax = lineDataSetList.get(i).getYMax();
+                rightMin = lineDataSetList.get(i).getYMin();
+            }
+        }
+        drawRecordChart(mLineChart, mDataIndexList,
                 mRecordDataList.get(mRecordDataList.size()-1).index + 1,
                 leftMax, leftMin, rightMax, rightMin);
         mLineChart.setData(recordData);
         mLineChart.invalidate();
-        mLineChart.setOnChartValueSelectedListener(new ChartValueSelectedListener(dataIndexList));
+        mLineChart.setOnChartValueSelectedListener(new ChartValueSelectedListener(mDataIndexList));
 
         TextView date = (TextView) findViewById(R.id.info_date);
-        TextView leftValue = (TextView) findViewById(R.id.info_left_axis_value);
-        TextView rightValue = (TextView) findViewById(R.id.info_right_axis_value);
         mLineChart.moveViewToX(mRecordDataList.get(mRecordDataList.size()-1).index + 1);
         if (mSavedInstance != null) {
             mLineChart.moveViewToX(mSavedInstance.getFloat(CHART_VIEW_X));
@@ -351,13 +407,10 @@ public class ChartActivity extends AppCompatActivity
             mLineChart.highlightValue(highlight);
             if (highlight != null) {
                 int index = (int) highlight.getX();
-                if (dataIndexList != null && dataIndexList.contains(index)) {
-                    RecordData highlightData = mRecordDataList.get(dataIndexList.indexOf(index));
+                if (mDataIndexList != null && mDataIndexList.contains(index)) {
+                    RecordData highlightData = mRecordDataList.get(mDataIndexList.indexOf(index));
                     date.setText(String.valueOf(highlightData.date));
-                    leftValue.setText(
-                            getString(R.string.value_weight_kg, valueFormat(highlightData.weight)));
-                    rightValue.setText(
-                            getString(R.string.value_body_fat, valueFormat(highlightData.bodyFat)));
+                    setInfoValue(highlightData);
                 }
                 return;
             }
@@ -365,8 +418,7 @@ public class ChartActivity extends AppCompatActivity
         RecordData lastData = mRecordDataList.get(mRecordDataList.size() - 1);
         date.setText(
                 String.valueOf(lastData.date) + " " + getString(R.string.value_last_record));
-        leftValue.setText(getString(R.string.value_weight_kg, valueFormat(lastData.weight)));
-        rightValue.setText(getString(R.string.value_body_fat, valueFormat(lastData.bodyFat)));
+        setInfoValue(lastData);
     }
 
     private List<Integer> getCursorData(Cursor cursor) {
@@ -463,9 +515,11 @@ public class ChartActivity extends AppCompatActivity
     private static final float CHART_AXIS_LABEL_WIDTH = 40;
     private static final int CHART_BORDER_COLOR = Color.LTGRAY;
     private static final float CHART_ROTATION_ANGLE = -40;
-    private static final float CHART_AXIS_OFFSET = 5;
+    private static final float CHART_AXIS_OFFSET = 2;
+    private static final int CHART_AXIS_LEFT = 0;
+    private static final int CHART_AXIS_RIGHT = 1;
 
-    private ILineDataSet setBodyWeightData() {
+    private ILineDataSet setBodyWeightData(int side) {
         List<Entry> entries = new ArrayList<>();
 
         for (int i = 0; i < mRecordDataList.size(); i++) {
@@ -475,30 +529,32 @@ public class ChartActivity extends AppCompatActivity
             entries.add(new Entry(
                     mRecordDataList.get(i).index,
                     mRecordDataList.get(i).weight,
-                    DATA_SET_LEFT_AXIS_COLOR));
+                    side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR));
         }
 
-        LineDataSet dataSet = new LineDataSet(entries, "Body Weight");
-        dataSet.setColor(DATA_SET_LEFT_AXIS_COLOR);
+        LineDataSet dataSet = new LineDataSet(entries, getString(R.string.title_weight));
+        dataSet.setColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setLineWidth(DATA_SET_LINE_WIDTH);
-        dataSet.setCircleColor(DATA_SET_LEFT_AXIS_COLOR);
+        dataSet.setCircleColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setCircleRadius(DATA_SET_CIRCLE_RADIUS);
-        dataSet.setCircleColorHole(DATA_SET_LEFT_AXIS_COLOR);
+        dataSet.setCircleColorHole(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setMode(LineDataSet.Mode.LINEAR);
         dataSet.setDrawValues(false);
-        dataSet.setHighLightColor(DATA_SET_LEFT_AXIS_COLOR);
+        dataSet.setHighLightColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setDrawVerticalHighlightIndicator(false);
 
-        dataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
-        TextView leftAxis = (TextView) findViewById(R.id.left_axis);
-        leftAxis.setText(getString(R.string.label_weight));
-        TextView leftTitle = (TextView) findViewById(R.id.info_left_axis_title);
-        leftTitle.setText(getString(R.string.title_weight).concat(" = "));
+        dataSet.setAxisDependency(side == CHART_AXIS_LEFT? YAxis.AxisDependency.LEFT : YAxis.AxisDependency.RIGHT);
+        TextView axis = (TextView) findViewById(side == CHART_AXIS_LEFT? R.id.left_axis : R.id.right_axis);
+        axis.setText(getString(R.string.label_weight));
+        if (mAxisTitle.size() == 1) {
+            axis = (TextView) findViewById(R.id.right_axis);
+            axis.setText(getString(R.string.label_weight));
+        }
 
         return dataSet;
     }
 
-    private ILineDataSet setBodyFatData() {
+    private ILineDataSet setBodyFatData(int side) {
         List<Entry> entries = new ArrayList<>();
 
         for (int i = 0; i < mRecordDataList.size(); i++) {
@@ -508,25 +564,27 @@ public class ChartActivity extends AppCompatActivity
             entries.add(new Entry(
                     mRecordDataList.get(i).index,
                     mRecordDataList.get(i).bodyFat,
-                    DATA_SET_RIGHT_AXIS_COLOR));
+                    side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR));
         }
 
-        LineDataSet dataSet = new LineDataSet(entries, "Body Fat");
-        dataSet.setColor(DATA_SET_RIGHT_AXIS_COLOR);
+        LineDataSet dataSet = new LineDataSet(entries, getString(R.string.title_body_fat));
+        dataSet.setColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setLineWidth(DATA_SET_LINE_WIDTH);
-        dataSet.setCircleColor(DATA_SET_RIGHT_AXIS_COLOR);
+        dataSet.setCircleColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setCircleRadius(DATA_SET_CIRCLE_RADIUS);
-        dataSet.setCircleColorHole(DATA_SET_RIGHT_AXIS_COLOR);
+        dataSet.setCircleColorHole(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setMode(LineDataSet.Mode.LINEAR);
         dataSet.setDrawValues(false);
-        dataSet.setHighLightColor(DATA_SET_RIGHT_AXIS_COLOR);
+        dataSet.setHighLightColor(side == CHART_AXIS_LEFT? DATA_SET_LEFT_AXIS_COLOR : DATA_SET_RIGHT_AXIS_COLOR);
         dataSet.setDrawVerticalHighlightIndicator(false);
 
-        dataSet.setAxisDependency(YAxis.AxisDependency.RIGHT);
-        TextView rightAxis = (TextView) findViewById(R.id.right_axis);
-        rightAxis.setText(getString(R.string.label_body_fat));
-        TextView rightTitle = (TextView) findViewById(R.id.info_right_axis_title);
-        rightTitle.setText(getString(R.string.title_body_fat).concat(" = "));
+        dataSet.setAxisDependency(side == CHART_AXIS_LEFT? YAxis.AxisDependency.LEFT : YAxis.AxisDependency.RIGHT);
+        TextView axis = (TextView) findViewById(side == CHART_AXIS_LEFT? R.id.left_axis : R.id.right_axis);
+        axis.setText(getString(R.string.label_body_fat));
+        if (mAxisTitle.size() == 1) {
+            axis = (TextView) findViewById(R.id.right_axis);
+            axis.setText(getString(R.string.label_body_fat));
+        }
 
         return dataSet;
     }
@@ -559,9 +617,15 @@ public class ChartActivity extends AppCompatActivity
         rightAxis.setMaxWidth(CHART_AXIS_LABEL_WIDTH);
         rightAxis.setTextColor(CHART_BORDER_COLOR);
         rightAxis.setAxisLineWidth(1);
-        rightAxis.setAxisLineColor(DATA_SET_RIGHT_AXIS_COLOR);
-        rightAxis.setAxisMaximum(rightMax + CHART_AXIS_OFFSET);
-        rightAxis.setAxisMinimum(rightMin - CHART_AXIS_OFFSET);
+        if (mAxisTitle.size() > 1) {
+            rightAxis.setAxisLineColor(DATA_SET_RIGHT_AXIS_COLOR);
+            rightAxis.setAxisMaximum(rightMax + CHART_AXIS_OFFSET);
+            rightAxis.setAxisMinimum(rightMin - CHART_AXIS_OFFSET);
+        } else {
+            rightAxis.setAxisLineColor(DATA_SET_LEFT_AXIS_COLOR);
+            rightAxis.setAxisMaximum(leftMax + CHART_AXIS_OFFSET);
+            rightAxis.setAxisMinimum(leftMax - CHART_AXIS_OFFSET);
+        }
 
         YAxis leftAxis = chart.getAxisLeft();
         leftAxis.setDrawGridLines(false);
@@ -619,6 +683,20 @@ public class ChartActivity extends AppCompatActivity
             stringList.add(strings[i]);
         }
         return stringList;
+    }
+
+    private void initInfo() {
+        TextView weightTitle = (TextView) findViewById(R.id.info_weight_title);
+        weightTitle.setText(getString(R.string.title_weight).concat(" = "));
+        TextView bodyFatTitle = (TextView) findViewById(R.id.info_body_fat_title);
+        bodyFatTitle.setText(getString(R.string.title_body_fat).concat(" = "));
+    }
+
+    private void setInfoValue(RecordData recordData) {
+        TextView weightValue = (TextView) findViewById(R.id.info_weight_value);
+        TextView bodyFatValue = (TextView) findViewById(R.id.info_body_fat_value);
+        weightValue.setText(getString(R.string.value_weight_kg, valueFormat(recordData.weight)));
+        bodyFatValue.setText(getString(R.string.value_body_fat, valueFormat(recordData.bodyFat)));
     }
 
 }
